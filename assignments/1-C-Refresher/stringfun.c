@@ -13,8 +13,9 @@ int  setup_buff(char *, char *, int);
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
 //add additional prototypes here
-char* reverse(char*, int);
+char* reverse(char *, int);
 int word_print(char *, int);
+char* replace(char *, char *, char *, int, int);
 
 
 int setup_buff(char *buff, char *user_str, int len){
@@ -151,6 +152,34 @@ int word_print(char *buff, int str_len){
     return 0;
 }
 
+char* replace(char *buff, char *word, char *replacement, int len, int str_len){
+    int word_len = 0;
+    int replacement_len = 0;
+
+    // finding the length of each string
+    while (word[word_len] != '\0'){
+        word_len++;
+    }
+    while (replacement[replacement_len] != '\0'){
+        replacement_len++;
+    }
+
+    for (int i = 0; buff < len; i++){
+        int j = 0;
+
+        while (buff[i + j] == target[j] && target[j] != '\0') {
+            j++;
+        }
+
+        if(j == word_len){
+            if (i + replacement_len > str_len) {
+                return NULL;
+            }
+        }
+
+    }
+}
+
 int main(int argc, char *argv[]){
 
     char *buff;             //placehoder for the internal buffer
@@ -248,6 +277,12 @@ int main(int argc, char *argv[]){
         case 'x':
             if(argc == 5){
                 printf("Not implemented\n");
+                printf("the word to replace: %s\n", argv[3]);
+                char word = argv[3];
+                printf("replacement word: %s\n", argv[4]);
+                char replacement = argv[4];
+                char newString = replace(buff, word, replacement, BUFFER_SZ, user_str_len);
+                printf("New String: %s\n", newString);
             } else {
                 printf("Error, not enough or too many arguments for -x\n");
                 usage(argv[0]);
