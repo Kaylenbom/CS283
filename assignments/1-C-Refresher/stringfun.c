@@ -13,9 +13,9 @@ int  setup_buff(char *, char *, int);
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
 //add additional prototypes here
-char* reverse(char *, int);
+void reverse(char *, int);
 int word_print(char *, int);
-char* replace(char *, char *, char *, int, int);
+int replace(char *, char *, char *, int, int);
 
 
 int setup_buff(char *buff, char *user_str, int len){
@@ -101,23 +101,19 @@ int count_words(char *buff, int len, int str_len){
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 
-char* reverse(char *buff, int str_len){
-    char *reversed_string = (char*)malloc(str_len + 1);
+void reverse(char *buff, int str_len){
 
     int i = 0;
     int j = str_len - 1;
 
-    // we begin at the end of the user given string and just populate the reversed_string
-    while (i < str_len){
-        reversed_string[i] = buff[j];
+    // we begin at the end of the user given string and reverse to first letter
+    while (i < j){
+        char temp = buff[i];
+        buff[i] = buff[j];
+        buff[j] = temp;
         i++;
         j--;
     }
-
-    // add a null at the end of reversed string and return
-    reversed_string[i] = '\0';
-
-    return reversed_string;
 }
 
 int word_print(char *buff, int str_len){
@@ -152,63 +148,57 @@ int word_print(char *buff, int str_len){
     return 0;
 }
 
-char* replace(char *buff, char *word, char *replacement, int len, int str_len){
+int replace(char *buff, char *word, char *replacement, int len, int str_len){
     int word_len = 0;
     int replacement_len = 0;
 
-
-    // finding the length of each string
-    while (word[word_len] != '\0'){
+    // Finding the length of the word and replacement
+    while (word[word_len] != '\0') {
         word_len++;
     }
-    while (replacement[replacement_len] != '\0'){
+    while (replacement[replacement_len] != '\0') {
         replacement_len++;
     }
 
-    if (str_len + replacement_len > len) {
-        return NULL;
+    // Check if buffer has enough space for the replacement
+    if (str_len - word_len + replacement_len > len) { 
+        return -1; 
     }
 
-    for (int i = 0; buff[i] != '\0'; i++){
+    for (int i = 0; buff[i] != '\0'; i++) {
         int j = 0;
 
-     
-        // checking the for the word in the sentence
+        // Check for the word in the buffer
         while (buff[i + j] == word[j] && word[j] != '\0') {
-            j++;  
+            j++;
         }
 
-        if(j == word_len){
-            char *result = (char *)malloc(len + 1);
-            if (result == NULL) {
-                return NULL;
+        if (j == word_len) { 
+            int shift = replacement_len - word_len;
+
+            // Shift buffer if necessary
+            if (shift > 0) {
+                for (int k = str_len; k >= i + word_len; k--) {
+                    buff[k + shift] = buff[k];
+                }
+            } else if (shift < 0) {
+                for (int k = i + word_len; k <= str_len; k++) {
+                    buff[k + shift] = buff[k];
+                }
             }
 
-            // Copy buff to result up to the mattched word
-            int k = 0;
-            for (; k < i; k++) {
-                result[k] = buff[k];
+            // Copy the replacement into the buffer
+            for (int m = 0; m < replacement_len; m++) {
+                buff[i + m] = replacement[m];
             }
 
-            // Copy the replacement word into result
-            for (int r = 0; r < replacement_len; r++) {
-                result[k++] = replacement[r];
-            }
+            str_len += shift;
 
-            //copy rest of the sentence
-            int n = i + word_len;
-            while(buff[n] != '.' && n < len){
-                result[k++] = buff[n++];
-            }
-
-            // adding null to the end of the String
-            result[k] = '\0';
-            return result;
-           
+            return 0;
         }
-
     }
-    return NULL;
+
+    return -1; 
 }
 
 int main(int argc, char *argv[]){
@@ -284,15 +274,7 @@ int main(int argc, char *argv[]){
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
         case 'r':
-            char *reversed_string = reverse(buff, user_str_len);
-            if(!reversed_string){
-                printf("Error reversing the string.\n");
-                exit(2);
-            }
-
-            printf("Reversed String: %s\n", reversed_string);
-
-            free(reversed_string);
+            reverse(buff, user_str_len);
             break;
             
         case 'w':
@@ -312,10 +294,8 @@ int main(int argc, char *argv[]){
                 char *word = argv[3];
                 //printf("replacement word: %s\n", argv[4]);
                 char *replacement = argv[4];
-                char *newString = replace(buff, word, replacement, BUFFER_SZ, user_str_len);
-                if(newString != NULL){
-                    printf("Modified String: %s\n", newString);
-                }else{
+                int check = replace(buff, word, replacement, BUFFER_SZ, user_str_len);
+                if(check == -1){
                     printf("Error replacing word in string\n");
                     exit(2);
                 }
