@@ -156,6 +156,7 @@ char* replace(char *buff, char *word, char *replacement, int len, int str_len){
     int word_len = 0;
     int replacement_len = 0;
 
+
     // finding the length of each string
     while (word[word_len] != '\0'){
         word_len++;
@@ -164,20 +165,50 @@ char* replace(char *buff, char *word, char *replacement, int len, int str_len){
         replacement_len++;
     }
 
-    for (int i = 0; buff < len; i++){
+    if (str_len + replacement_len > len) {
+        return NULL;
+    }
+
+    for (int i = 0; buff[i] != '\0'; i++){
         int j = 0;
 
-        while (buff[i + j] == target[j] && target[j] != '\0') {
-            j++;
+     
+        // checking the for the word in the sentence
+        while (buff[i + j] == word[j] && word[j] != '\0') {
+            j++;  
         }
 
         if(j == word_len){
-            if (i + replacement_len > str_len) {
+            char *result = (char *)malloc(len + 1);
+            if (result == NULL) {
                 return NULL;
             }
+
+            // Copy buff to result up to the mattched word
+            int k = 0;
+            for (; k < i; k++) {
+                result[k] = buff[k];
+            }
+
+            // Copy the replacement word into result
+            for (int r = 0; r < replacement_len; r++) {
+                result[k++] = replacement[r];
+            }
+
+            //copy rest of the sentence
+            int n = i + word_len;
+            while(buff[n] != '.' && n < len){
+                result[k++] = buff[n++];
+            }
+
+            // adding null to the end of the String
+            result[k] = '\0';
+            return result;
+           
         }
 
     }
+    return NULL;
 }
 
 int main(int argc, char *argv[]){
@@ -236,7 +267,7 @@ int main(int argc, char *argv[]){
     //printf("the user_str len: %d", user_str_len);
 
     if (user_str_len < 0){
-        printf("Error setting up buffer, error = %d", user_str_len);
+        printf("Error setting up buffer, error = %d\n", user_str_len);
         exit(2);
     }
 
@@ -244,7 +275,7 @@ int main(int argc, char *argv[]){
         case 'c':
             rc = count_words(buff, BUFFER_SZ, user_str_len);  //you need to implement
             if (rc < 0){
-                printf("Error counting words, rc = %d", rc);
+                printf("Error counting words, rc = %d\n", rc);
                 exit(2);
             }
             printf("Word Count: %d\n", rc);
@@ -255,7 +286,7 @@ int main(int argc, char *argv[]){
         case 'r':
             char *reversed_string = reverse(buff, user_str_len);
             if(!reversed_string){
-                printf("Error reversing the string.");
+                printf("Error reversing the string.\n");
                 exit(2);
             }
 
@@ -276,13 +307,18 @@ int main(int argc, char *argv[]){
         
         case 'x':
             if(argc == 5){
-                printf("Not implemented\n");
-                printf("the word to replace: %s\n", argv[3]);
-                char word = argv[3];
-                printf("replacement word: %s\n", argv[4]);
-                char replacement = argv[4];
-                char newString = replace(buff, word, replacement, BUFFER_SZ, user_str_len);
-                printf("New String: %s\n", newString);
+                //printf("Not implemented\n");
+                //printf("the word to replace: %s\n", argv[3]);
+                char *word = argv[3];
+                //printf("replacement word: %s\n", argv[4]);
+                char *replacement = argv[4];
+                char *newString = replace(buff, word, replacement, BUFFER_SZ, user_str_len);
+                if(newString != NULL){
+                    printf("Modified String: %s\n", newString);
+                }else{
+                    printf("Error replacing word in string\n");
+                    exit(2);
+                }
             } else {
                 printf("Error, not enough or too many arguments for -x\n");
                 usage(argv[0]);
