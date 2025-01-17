@@ -59,10 +59,11 @@ int setup_buff(char *buff, char *user_str, int len){
 }
 
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
+    putchar(']');
     putchar('\n');
 }
 
@@ -76,6 +77,7 @@ int count_words(char *buff, int len, int str_len){
     int count = 0;
     // treat word as a flag for when we iterate over buff
     int word = 0;
+
 
     // for the length of buff we check each character
     for(int i = 0; i < len && i < str_len; i++){
@@ -130,7 +132,7 @@ int word_print(char *buff, int str_len){
         } else {
             if(count > 0){
                 word[count] = '\0';
-            printf("%d. %s (%d)\n", num, word, count);
+            printf("%d. %s(%d)\n", num, word, count);
             count = 0;
             num++;
             }
@@ -140,8 +142,10 @@ int word_print(char *buff, int str_len){
     //Do this at the end to catch any words with no space afer
     if(count > 0){
         word[count] = '\0';
-        printf("%d. %s (%d)\n", num, word, count);
+        printf("%d. %s(%d)\n", num, word, count);
     }
+    printf("\n");
+    printf("Number of words returned: %d\n", num);
 
     // free memory
     free(word);
@@ -161,7 +165,7 @@ int replace(char *buff, char *word, char *replacement, int len, int str_len){
     }
 
     // Check if buffer has enough space for the replacement
-    if (str_len - word_len + replacement_len > len) { 
+    if ((str_len - word_len) + (replacement_len - word_len) >= len) { 
         return -1; 
     }
 
@@ -192,8 +196,16 @@ int replace(char *buff, char *word, char *replacement, int len, int str_len){
                 buff[i + m] = replacement[m];
             }
 
-            str_len += shift;
+            
 
+            str_len += shift;
+            buff[str_len] = '\0';
+
+            
+            for (int m = str_len; m <= len; m++) {
+                buff[m] = '.';
+            }
+            
             return 0;
         }
     }
