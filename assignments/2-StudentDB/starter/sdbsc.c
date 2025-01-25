@@ -354,6 +354,7 @@ int print_db(int fd){
         
     }
 
+    // if the database is empty print that out
     if(empty){
         printf(M_DB_EMPTY);
     }
