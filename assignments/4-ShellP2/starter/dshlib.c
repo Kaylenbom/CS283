@@ -99,13 +99,12 @@
 
 int exec_local_cmd_loop()
 {
-    char *cmd_buff;
+    char *cmd_buff = malloc(SH_CMD_MAX * sizeof(char));
     int rc = 0;
     cmd_buff_t cmd;
 
 
     // TODO IMPLEMENT MAIN LOOP
-    cmd_buff = malloc(SH_CMD_MAX);
 
 
     while(1){
@@ -172,6 +171,10 @@ int exec_local_cmd_loop()
         // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
 
         pid_t pid = fork();
+        if(pid == -1){
+            perror("Fork failed\n");
+            exit(EXIT_FAILURE);
+        }
         if (pid == 0){
             if (execvp(cmd.argv[0], cmd.argv) == -1){
                 switch(errno){
