@@ -173,9 +173,7 @@ int execute_pipeline(command_list_t *clist) {
         waitpid(pids[i], &status, 0);
         if (WIFEXITED(status)) {
             //printf("Child %d finished with exit status %d\n", i, WEXITSTATUS(status));
-        } else {
-            printf("Child %d did not exit normally\n", i);
-        }
+        } 
     }
 
     return OK;
@@ -199,14 +197,22 @@ int exec_cmd(cmd_buff_t *cmd) {
 // execute any built in commands like cd, dragon, and exit
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd){
     if(strcmp(cmd->argv[0], "cd") == 0){
-        if(cmd->argc == 1){
-            return BI_EXECUTED;
-        } else {
-            if(chdir(cmd->argv[1]) != 0){
-                perror("cd");
+        const char *target_dir = NULL;
+
+        if (cmd->argc == 1) {
+            target_dir = getenv("HOME");
+            if (!target_dir) {
+                return BI_EXECUTED;
             }
-            return BI_NOT_BI;
+        } else {
+            target_dir = cmd->argv[1];
         }
+
+        if (chdir(target_dir) != 0) {
+            perror("cd");
+        }
+
+        return BI_EXECUTED;
        
     } else if(strcmp(cmd->argv[0], "dragon") == 0){
         print_dragon();
