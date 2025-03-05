@@ -33,6 +33,7 @@ typedef struct command{
 }command_t;
 */
 
+
 typedef struct command_list{
     int num;
     cmd_buff_t commands[CMD_MAX];

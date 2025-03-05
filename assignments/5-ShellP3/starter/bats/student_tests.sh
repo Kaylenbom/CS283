@@ -20,7 +20,7 @@ EOF
 stripped_output=$(echo "$output" | tr -d '[:space:]')
 
     # Expected output with all whitespace removed for easier matching
-    expected_output="dsh_cli.cdshlib.cdsh3>dsh3>cmdloopreturned0"
+    expected_output="3dsh3>dsh3>cmdloopreturned0"
 
     # These echo commands will help with debugging and will only print
     #if the test fails
@@ -33,17 +33,20 @@ stripped_output=$(echo "$output" | tr -d '[:space:]')
     [ "$stripped_output" = "$expected_output" ]
 
 }
-
-@test "Check 'ls -l' runs correctly" {
-    run ./dsh <<EOF
-ls -l
-EOF
-    [ "$status" -eq 0 ]
-}
 @test "Check command with leading spaces" {
     run ./dsh <<EOF
    ls
 EOF
+stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="Makefilebatsdragon.cdragon.hdshdsh_cli.cdshlib.cdshlib.hdsh3>dsh3>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
     [ "$status" -eq 0 ]
 }
 
@@ -51,6 +54,16 @@ EOF
     run ./dsh <<EOF
 ls   
 EOF
+stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="Makefilebatsdragon.cdragon.hdshdsh_cli.cdshlib.cdshlib.hdsh3>dsh3>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
     [ "$status" -eq 0 ]
 }
 @test "Check empty input doesn't crash the shell" {
@@ -64,6 +77,63 @@ EOF
     run ./dsh <<EOF
 exit
 EOF
+stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="dsh3>"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
     [ "$status" -eq 0 ]
 }
+@test "Check echo" {
+    run ./dsh <<EOF
+echo "Hello World"
+EOF
+stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="HelloWorlddsh3>dsh3>cmdloopreturned0"
 
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
+    [ "$status" -eq 0 ]
+}
+@test "Check max pipes" {
+    run ./dsh <<EOF
+echo ls | ls | ls | ls | ls | ls | ls | ls | ls
+EOF
+stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="dsh3>error:pipinglimitedto8commandsdsh3>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
+    [ "$status" -eq 0 ]
+}
+@test "empty pipe command" {
+    run ./dsh <<EOF
+ls | | grep dshlib.c
+EOF
+stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="dshlib.cdsh3>dsh3>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
+    [ "$status" -eq 0 ]
+}
