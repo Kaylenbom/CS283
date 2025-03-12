@@ -2,6 +2,6 @@
 #ifndef DRAGON_H
 #define DRAGON_H
 
-void print_dragon();  
+const char* print_dragon();  
 
 #endif

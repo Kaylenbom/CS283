@@ -99,6 +99,14 @@ int exec_remote_cmd_loop(char *address, int port)
     int is_eof;
 
     // TODO set up cmd and response buffs
+    size_t cmd_buff_size = 1024; 
+    size_t rsp_buff_size = 1024;
+    cmd_buff = malloc(cmd_buff_size);
+    rsp_buff = malloc(rsp_buff_size);
+
+    if (!cmd_buff || !rsp_buff) {
+        return ERR_MEMORY;
+    }
 
     cli_socket = start_client(address,port);
     if (cli_socket < 0){
@@ -109,14 +117,45 @@ int exec_remote_cmd_loop(char *address, int port)
     while (1) 
     {
         // TODO print prompt
+        printf("%s", SH_PROMPT);
 
         // TODO fgets input
+        if (!fgets(cmd_buff, cmd_buff_size, stdin)) {
+            printf("Error reading input\n");
+            break;
+        }
 
         // TODO send() over cli_socket
+        io_size = send(cli_socket, cmd_buff, strlen(cmd_buff) + 1, 0);  // null-terminated
+        if (io_size < 0) {
+            perror("send failed");
+            return client_cleanup(cli_socket, cmd_buff, rsp_buff, ERR_RDSH_COMMUNICATION);
+        }
 
         // TODO recv all the results
+        is_eof = 0;
+        while (!is_eof) {
+            // Receive data from the server
+            io_size = recv(cli_socket, rsp_buff, rsp_buff_size, 0);
+            if (io_size < 0) {
+                perror("recv failed");
+                return client_cleanup(cli_socket, cmd_buff, rsp_buff, ERR_RDSH_COMMUNICATION);
+            }
+            //printf("Recievedf %.*s", (int)io_size, rsp_buff);
+
+            // Check if the EOF character is present at the end
+            is_eof = (rsp_buff[io_size - 1] == RDSH_EOF_CHAR) ? 1 : 0;
+            printf("%.*s", (int)io_size, rsp_buff);
+        }
 
         // TODO break on exit command
+        if (strncmp(cmd_buff, EXIT_CMD, 4) == 0) {
+            break;
+        }
+        if (strncmp(cmd_buff, "stop-server", 4) == 0) {
+            break;
+        }
+       
     }
 
     return client_cleanup(cli_socket, cmd_buff, rsp_buff, OK);
@@ -151,6 +190,25 @@ int start_client(char *server_ip, int port){
     int ret;
 
     // TODO set up cli_socket
+    cli_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (cli_socket < 0) {
+        return ERR_RDSH_CLIENT;
+    }
+
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, server_ip, &addr.sin_addr) <= 0) {
+        perror("Invalid address or address not supported");
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
+
+    if (connect(cli_socket, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        perror("connect failed");
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
 
 
     return cli_socket;
