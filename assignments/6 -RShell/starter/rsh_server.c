@@ -216,51 +216,51 @@ int process_cli_requests(int svr_socket){
         printf("Waiting for client connections...\n");
         // TODO use the accept syscall to create cli_socket 
         // and then exec_client_requests(cli_socket)
-        cli_socket = accept(svr_socket, NULL, NULL);
-        if (cli_socket == -1) {
+        // cli_socket = accept(svr_socket, NULL, NULL);
+        // if (cli_socket == -1) {
+        //     perror("accept");
+        //     return ERR_RDSH_COMMUNICATION;
+        // }
+
+        // printf("Accepted client connection: %d\n", cli_socket);
+
+        // // Process client requests
+        // rc = exec_client_requests(cli_socket);
+        // //close(cli_socket);
+
+        // // If client sent stop-server, break the loop and stop the server
+        // if (rc == OK_EXIT) {
+        //     continue;
+        // }
+
+        // if(rc == EXIT_SC){
+        //     close(cli_socket);
+        //     stop_server(cli_socket);
+        //     break;
+        // }
+
+        cli_socket = malloc(sizeof(int));
+        if (!cli_socket) {
+            perror("malloc");
+            return ERR_RDSH_SERVER;
+        }
+
+        *cli_socket = accept(svr_socket, NULL, NULL);
+        if (*cli_socket == -1) {
             perror("accept");
+            free(cli_socket);
+            return ERR_RDSH_COMMUNICATION;
+        }
+        pthread_t tid;
+
+        if (pthread_create(&tid, NULL, handle_client, cli_socket) != 0) {
+            perror("pthread_create");
+            free(cli_socket);
+            close(*cli_socket);
             return ERR_RDSH_COMMUNICATION;
         }
 
-        printf("Accepted client connection: %d\n", cli_socket);
-
-        // Process client requests
-        rc = exec_client_requests(cli_socket);
-        //close(cli_socket);
-
-        // If client sent stop-server, break the loop and stop the server
-        if (rc == OK_EXIT) {
-            continue;
-        }
-
-        if(rc == EXIT_SC){
-            close(cli_socket);
-            stop_server(cli_socket);
-            break;
-        }
-
-        // cli_socket = malloc(sizeof(int));
-        // if (!cli_socket) {
-        //     perror("malloc");
-        //     return ERR_RDSH_SERVER;
-        // }
-
-        // *cli_socket = accept(svr_socket, NULL, NULL);
-        // if (*cli_socket == -1) {
-        //     perror("accept");
-        //     free(cli_socket);
-        //     return ERR_RDSH_COMMUNICATION;
-        // }
-        // pthread_t tid;
-
-        // if (pthread_create(&tid, NULL, handle_client, cli_socket) != 0) {
-        //     perror("pthread_create");
-        //     free(cli_socket);
-        //     close(*cli_socket);
-        //     return ERR_RDSH_COMMUNICATION;
-        // }
-
-        // pthread_detach(tid);
+        pthread_detach(tid);
 
     }
 
