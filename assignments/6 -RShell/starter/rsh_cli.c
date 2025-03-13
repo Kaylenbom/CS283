@@ -145,7 +145,11 @@ int exec_remote_cmd_loop(char *address, int port)
 
             // Check if the EOF character is present at the end
             is_eof = (rsp_buff[io_size - 1] == RDSH_EOF_CHAR) ? 1 : 0;
+            // rsp_buff[io_size] = '\0';
+            // if(strcmp(rsp_buff, "dragon") == 0){
             printf("%.*s", (int)io_size, rsp_buff);
+            // }
+
         }
 
         // TODO break on exit command

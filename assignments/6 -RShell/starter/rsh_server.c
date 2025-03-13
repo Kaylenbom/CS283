@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <sys/un.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <errno.h>
 
 //INCLUDES for extra credit
 //#include <signal.h>
@@ -228,8 +230,7 @@ int process_cli_requests(int svr_socket){
 
         // If client sent stop-server, break the loop and stop the server
         if (rc == OK_EXIT) {
-            close(cli_socket);
-            break;
+            continue;
         }
 
         if(rc == EXIT_SC){
@@ -238,10 +239,42 @@ int process_cli_requests(int svr_socket){
             break;
         }
 
+        // cli_socket = malloc(sizeof(int));
+        // if (!cli_socket) {
+        //     perror("malloc");
+        //     return ERR_RDSH_SERVER;
+        // }
+
+        // *cli_socket = accept(svr_socket, NULL, NULL);
+        // if (*cli_socket == -1) {
+        //     perror("accept");
+        //     free(cli_socket);
+        //     return ERR_RDSH_COMMUNICATION;
+        // }
+        // pthread_t tid;
+
+        // if (pthread_create(&tid, NULL, handle_client, cli_socket) != 0) {
+        //     perror("pthread_create");
+        //     free(cli_socket);
+        //     close(*cli_socket);
+        //     return ERR_RDSH_COMMUNICATION;
+        // }
+
+        // pthread_detach(tid);
+
     }
 
     stop_server(cli_socket);
     return rc;
+}
+
+void *handle_client(void *arg) {
+    int cli_socket = *((int *)arg);
+    free(arg); // Free the allocated socket pointer
+
+    exec_client_requests(cli_socket);
+    close(cli_socket);
+    return NULL;
 }
 
 /*
@@ -307,16 +340,17 @@ int exec_client_requests(int cli_socket) {
             break;
         }
         io_buff[bytes_received] = '\0'; // Ensure null termination
-        printf("Received command: %s\n", io_buff);
+        //printf("Received command: %s\n", io_buff);
 
         io_buff[strcspn(io_buff, "\r\n")] = 0;
 
         // Check for 'exit' command
         if (strcmp(io_buff, "exit") == 0) {
             rc = OK; // Client wants to disconnect
-            printf(" do i go in here when exit?");
+            
             send_message_string(cli_socket, io_buff);
             send_message_eof(cli_socket);
+            close(cli_socket);
             break;
         }
 
@@ -324,7 +358,7 @@ int exec_client_requests(int cli_socket) {
         if (strcmp(io_buff, "stop-server") == 0) {
             printf("Closing server socket: %d\n", cli_socket);
             
-            printf("In here???");
+            //printf("In here???");
             //stop_server(cli_socket);
 
             //snprintf(io_buff, RDSH_COMM_BUFF_SZ, "Server is disconnecting...\n");
@@ -338,7 +372,8 @@ int exec_client_requests(int cli_socket) {
             const char* dragon = print_dragon();  // Assuming print_dragon writes to io_buff
             send_message_string(cli_socket, dragon);
             send_message_eof(cli_socket);
-        }
+            
+        } else {
 
 
 
@@ -346,19 +381,47 @@ int exec_client_requests(int cli_socket) {
         command_list_t cmd_list;
         build_cmd_list(io_buff, &cmd_list);
 
-        // TODO rsh_execute_pipeline to run your cmd_list
-        int cmd_rc = rsh_execute_pipeline(cli_socket, &cmd_list);
-
-        // TODO send appropriate respones with send_message_string
-        // - error constants for failures
-        // - buffer contents from execute commands
-        //  - etc.
+        if(strcmp(io_buff, "cd") == 0) {
+            const char *target_dir = NULL;
+            if (cmd_list.num == 1) {  // No argument, so change to HOME
+                target_dir = getenv("HOME");
+                if (!target_dir) {
+                    send_message_string(cli_socket, "HOME directory not found.\n");
+                    send_message_eof(cli_socket);
+                    return ERR_RDSH_COMMUNICATION;
+                }
+            } else if (cmd_list.commands[1].argc > 1) {  // User passed a directory as an argument
+                target_dir = cmd_list.commands[1].argv[1];
+            }
         
-        snprintf(io_buff, RDSH_COMM_BUFF_SZ, "Command exited with code: %d\n", cmd_rc);
-        send_message_string(cli_socket, io_buff);
+            // Change the directory and handle any errors
+            if (chdir(target_dir) != 0) {
+                char error_msg[256];
+                snprintf(error_msg, sizeof(error_msg), "cd: %s: %s\n", target_dir, strerror(errno));
+                send_message_string(cli_socket, error_msg);
+                send_message_eof(cli_socket);
+                return ERR_RDSH_COMMUNICATION;
+            } else {
+                send_message_string(cli_socket, "Directory changed successfully.\n");
+                send_message_eof(cli_socket);
+            }
+        } else {
 
-        // TODO send_message_eof when done
-        send_message_eof(cli_socket);
+            // TODO rsh_execute_pipeline to run your cmd_list
+            int cmd_rc = rsh_execute_pipeline(cli_socket, &cmd_list);
+
+            // TODO send appropriate respones with send_message_string
+            // - error constants for failures
+            // - buffer contents from execute commands
+            //  - etc.
+            
+            snprintf(io_buff, RDSH_COMM_BUFF_SZ, "Command exited with code: %d\n", cmd_rc);
+            send_message_string(cli_socket, io_buff);
+
+            // TODO send_message_eof when done
+            send_message_eof(cli_socket);
+        }
+     }
     }
 
     free(io_buff);
@@ -464,6 +527,10 @@ int rsh_execute_pipeline(int cli_sock, command_list_t *clist) {
     int pipes[num_cmds - 1][2]; 
     pid_t pids[num_cmds];
 
+    // if(rsh_match_command(clist->commands[0].argv[0])){
+    //     return OK;
+    // }
+
 
     // Create pipes
     for (int i = 0; i < num_cmds - 1; i++) {
@@ -482,7 +549,7 @@ int rsh_execute_pipeline(int cli_sock, command_list_t *clist) {
 
         // Child process
         if (pids[i] == 0) { 
-            fprintf(stderr, "Child %d redirecting output to client socket\n", i);
+            //fprintf(stderr, "Child %d redirecting output to client socket\n", i);
             // First command: connect input to client socket
             if (dup2(cli_sock, STDOUT_FILENO) == -1) {
                 perror("Failed to redirect stdout to client socket");
@@ -493,7 +560,7 @@ int rsh_execute_pipeline(int cli_sock, command_list_t *clist) {
                 exit(EXIT_FAILURE);
             }
 
-            fprintf(stderr, "After redirection\n");
+            //fprintf(stderr, "After redirection\n");
 
             // Close all pipes in the child process
             for (int j = 0; j < num_cmds - 1; j++) {
@@ -501,7 +568,7 @@ int rsh_execute_pipeline(int cli_sock, command_list_t *clist) {
                 close(pipes[j][1]);
             }
 
-            fprintf(stderr, "Executing command %s\n", clist->commands[i].argv[0]);
+            //fprintf(stderr, "Executing command %s\n", clist->commands[i].argv[0]);
 
             // Execute the command using execvp
             execvp(clist->commands[i].argv[0], clist->commands[i].argv);
